@@ -148,7 +148,14 @@ function renderDaftarAuditee(){
 
 /* ---------- Segmen (per Narasumber) ---------- */
 function linesFromText(t){return (t||'').split('\n').map(l=>l.trim()).filter(l=>l.length>0)}
-function renderPoinLine(line){return esc(line)}
+function renderPoinLine(line){
+  return parseInlineMarkdown(line).map(seg=>{
+    let t=esc(seg.text);
+    if(seg.italic)t='<em>'+t+'</em>';
+    if(seg.bold)t='<strong>'+t+'</strong>';
+    return t;
+  }).join('');
+}
 function parseKesimpulan(text){
   let baris=(text||'').split('\n').map(l=>l.trim()).filter(l=>l.length>0);
   if(baris.length===0)return {intro:'',poin:[]};
@@ -219,22 +226,32 @@ async function rapikanIsiWawancara(rawText,level){
     "1. Perbaiki ejaan dan tata bahasa sesuai EYD (Ejaan yang Disempurnakan) Bahasa Indonesia formal, tanpa mengubah makna atau menambahkan informasi/fakta baru yang tidak ada di teks asli.\n"+
     "2. Pecah menjadi poin-poin terpisah, satu poin untuk satu informasi/fakta.\n"+
     "3. "+elaborasiInstruksi(level)+"\n\n"+
-    "Format jawaban WAJIB: satu poin per baris teks biasa, TANPA nomor, TANPA simbol bullet (-, •, *), TANPA format markdown apapun (jangan gunakan *miring*, **tebal**, _garis bawah_, atau `kode`), TANPA judul/pengantar/penutup apapun. Hanya baris-baris poin dalam teks polos."
+    "Format jawaban WAJIB: satu poin per baris teks biasa, TANPA nomor, TANPA simbol bullet (-, •). Boleh menandai istilah/nama entitas penting dengan *tanda bintang tunggal* jika membantu penekanan, tapi jangan berlebihan. TANPA judul/pengantar/penutup apapun. Hanya baris-baris poin."
   );
-  return text.split('\n').map(l=>bersihkanMarkdown(l)).filter(l=>l.length>0);
+  return text.split('\n').map(l=>bersihkanBaris(l)).filter(l=>l.length>0);
 }
 
-/* Membersihkan sisa format markdown (*miring*, **tebal**, _garis bawah_) dan bullet/nomor di awal baris,
-   jaga-jaga kalau AI tetap menyelipkannya meski sudah dilarang lewat prompt */
-function bersihkanMarkdown(l){
+/* Hanya bersihkan bullet/nomor liar di awal baris. Markdown (*miring*, **tebal**) SENGAJA dibiarkan
+   di dalam teks karena akan dirender jadi format italic/bold asli (bukan tanda bintang mentah)
+   baik di preview maupun di file .docx — lihat parseInlineMarkdown() */
+function bersihkanBaris(l){
   return l
-    .replace(/^[\s\-\*•\d\.\)]+/,'')          // bullet/nomor di awal baris
-    .replace(/\*\*(.*?)\*\*/g,'$1')            // **tebal**
-    .replace(/\*(.*?)\*/g,'$1')                // *miring*
-    .replace(/__(.*?)__/g,'$1')                // __tebal__
-    .replace(/_(.*?)_/g,'$1')                  // _miring_
-    .replace(/`(.*?)`/g,'$1')                  // `kode`
+    .replace(/^[\s\-•\d\.\)]+/,'')   // bullet/nomor di awal baris (tanda * di awal baris dibiarkan, ditangani parser markdown)
+    .replace(/^\*\s+/,'')             // kecuali kalau * dipakai sebagai bullet-list di awal baris (spasi setelahnya)
     .trim();
+}
+
+/* Ubah "*miring*" dan "**tebal**" jadi segmen {text,bold,italic} untuk dirender sebagai format asli,
+   seperti aturan Markdown pada umumnya — tanda bintangnya sendiri tidak pernah ditampilkan. */
+function parseInlineMarkdown(text){
+  let segments=[],regex=/(\*\*(.+?)\*\*)|(\*(.+?)\*)|([^*]+)|(\*)/g,m;
+  while((m=regex.exec(text))!==null){
+    if(m[1]!==undefined)segments.push({text:m[2],bold:true,italic:false});
+    else if(m[3]!==undefined)segments.push({text:m[4],bold:false,italic:true});
+    else if(m[5]!==undefined)segments.push({text:m[5],bold:false,italic:false});
+    else if(m[6]!==undefined)segments.push({text:m[6],bold:false,italic:false}); // bintang tunggal nyasar, tampilkan apa adanya
+  }
+  return segments.length?segments:[{text:text,bold:false,italic:false}];
 }
 
 async function tambahSubPoint(){
@@ -324,9 +341,9 @@ async function generateKesimpulanOtomatis(){
       "Tugas Anda: buat bagian Kesimpulan & Temuan dalam bahasa Indonesia formal, dengan struktur:\n"+
       "1. Baris pertama: SATU kalimat pembuka singkat yang menyebutkan bahwa berdasarkan hasil wawancara dengan narasumber di unit "+unit+", ditemukan beberapa kesenjangan/temuan yang perlu mendapat perhatian (gaya seperti: 'Berdasarkan hasil wawancara dengan staf "+unit+", ditemukan beberapa kesenjangan yang perlu mendapat perhatian.').\n"+
       "2. Baris-baris berikutnya: poin-poin temuan (maksimal 10 poin), fokus pada kesenjangan/temuan (gap, ketidaksesuaian, belum ada standar/prosedur tertulis), risiko, dan hal yang perlu ditindaklanjuti. Setiap poin ditulis sebagai kalimat lengkap yang menjelaskan apa temuannya DAN mengapa itu menjadi masalah/risiko (bukan hanya frasa singkat), berdasarkan informasi yang memang ada di data di atas — jangan menambah fakta baru. Jika ada informasi yang sama atau beririsan dari beberapa narasumber, gabungkan jadi satu poin saja, jangan diulang-ulang.\n\n"+
-      "Format jawaban WAJIB: baris pertama = kalimat pembuka (kalimat biasa, TANPA bullet/nomor), baris-baris berikutnya = satu poin temuan per baris (TANPA nomor, TANPA simbol bullet seperti -, •, *, TANPA format markdown apapun seperti *miring* atau **tebal**). TANPA judul/pengantar/penutup lain di luar itu."
+      "Format jawaban WAJIB: baris pertama = kalimat pembuka (kalimat biasa, TANPA bullet/nomor), baris-baris berikutnya = satu poin temuan per baris (TANPA nomor, TANPA simbol bullet seperti -, •). Boleh menandai istilah/nama entitas penting dengan *tanda bintang tunggal* jika membantu penekanan, tapi jangan berlebihan. TANPA judul/pengantar/penutup lain di luar itu."
     );
-    const baris=text.split('\n').map(l=>bersihkanMarkdown(l)).filter(l=>l.length>0);
+    const baris=text.split('\n').map(l=>bersihkanBaris(l)).filter(l=>l.length>0);
     if(baris.length===0){throw new Error('Tidak ada hasil dari AI')}
     document.getElementById('kesimpulanTemuan').value=baris.join('\n');
     renderPreview();
@@ -382,7 +399,7 @@ function renderPreview(){
   }
 
   h+='<h2>Kesimpulan & Temuan</h2>';
-  if(kesimpulan.intro){h+='<p>'+esc(kesimpulan.intro)+'</p>'}
+  if(kesimpulan.intro){h+='<p>'+renderPoinLine(kesimpulan.intro)+'</p>'}
   h+='<ul>'+(kesimpulan.poin.length?kesimpulan.poin.map(p=>'<li>'+renderPoinLine(p)+'</li>').join(''):'<li>-</li>')+'</ul>';
 
   document.getElementById('previewContent').innerHTML=h;
@@ -405,7 +422,7 @@ async function generateDOCX(){
   const fontSize=22;
 
   function bulletParas(lines){
-    return lines.map(l=>new Paragraph({children:[new TextRun({text:l,size:fontSize})],bullet:{level:0},spacing:{after:80}}));
+    return lines.map(l=>new Paragraph({children:parseInlineMarkdown(l).map(seg=>new TextRun({text:seg.text,italics:seg.italic,bold:seg.bold,size:fontSize})),bullet:{level:0},spacing:{after:80}}));
   }
 
   let children=[];
@@ -435,7 +452,7 @@ async function generateDOCX(){
 
   children.push(new Paragraph({children:[new TextRun({text:'Kesimpulan & Temuan',bold:true,color:'1A237E',size:26})],spacing:{before:300,after:150}}));
   if(kesimpulan.intro){
-    children.push(new Paragraph({text:kesimpulan.intro,size:fontSize,alignment:AlignmentType.JUSTIFIED,spacing:{after:100}}));
+    children.push(new Paragraph({children:parseInlineMarkdown(kesimpulan.intro).map(seg=>new TextRun({text:seg.text,italics:seg.italic,bold:seg.bold,size:fontSize})),alignment:AlignmentType.JUSTIFIED,spacing:{after:100}}));
   }
   if(kesimpulan.poin.length>0){
     children=children.concat(bulletParas(kesimpulan.poin));
