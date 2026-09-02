@@ -219,9 +219,22 @@ async function rapikanIsiWawancara(rawText,level){
     "1. Perbaiki ejaan dan tata bahasa sesuai EYD (Ejaan yang Disempurnakan) Bahasa Indonesia formal, tanpa mengubah makna atau menambahkan informasi/fakta baru yang tidak ada di teks asli.\n"+
     "2. Pecah menjadi poin-poin terpisah, satu poin untuk satu informasi/fakta.\n"+
     "3. "+elaborasiInstruksi(level)+"\n\n"+
-    "Format jawaban WAJIB: satu poin per baris teks biasa, TANPA nomor, TANPA simbol bullet (-, •, *), TANPA judul/pengantar/penutup apapun. Hanya baris-baris poin."
+    "Format jawaban WAJIB: satu poin per baris teks biasa, TANPA nomor, TANPA simbol bullet (-, •, *), TANPA format markdown apapun (jangan gunakan *miring*, **tebal**, _garis bawah_, atau `kode`), TANPA judul/pengantar/penutup apapun. Hanya baris-baris poin dalam teks polos."
   );
-  return text.split('\n').map(l=>l.replace(/^[\s\-\*•\d\.\)]+/,'').trim()).filter(l=>l.length>0);
+  return text.split('\n').map(l=>bersihkanMarkdown(l)).filter(l=>l.length>0);
+}
+
+/* Membersihkan sisa format markdown (*miring*, **tebal**, _garis bawah_) dan bullet/nomor di awal baris,
+   jaga-jaga kalau AI tetap menyelipkannya meski sudah dilarang lewat prompt */
+function bersihkanMarkdown(l){
+  return l
+    .replace(/^[\s\-\*•\d\.\)]+/,'')          // bullet/nomor di awal baris
+    .replace(/\*\*(.*?)\*\*/g,'$1')            // **tebal**
+    .replace(/\*(.*?)\*/g,'$1')                // *miring*
+    .replace(/__(.*?)__/g,'$1')                // __tebal__
+    .replace(/_(.*?)_/g,'$1')                  // _miring_
+    .replace(/`(.*?)`/g,'$1')                  // `kode`
+    .trim();
 }
 
 async function tambahSubPoint(){
@@ -311,9 +324,9 @@ async function generateKesimpulanOtomatis(){
       "Tugas Anda: buat bagian Kesimpulan & Temuan dalam bahasa Indonesia formal, dengan struktur:\n"+
       "1. Baris pertama: SATU kalimat pembuka singkat yang menyebutkan bahwa berdasarkan hasil wawancara dengan narasumber di unit "+unit+", ditemukan beberapa kesenjangan/temuan yang perlu mendapat perhatian (gaya seperti: 'Berdasarkan hasil wawancara dengan staf "+unit+", ditemukan beberapa kesenjangan yang perlu mendapat perhatian.').\n"+
       "2. Baris-baris berikutnya: poin-poin temuan (maksimal 10 poin), fokus pada kesenjangan/temuan (gap, ketidaksesuaian, belum ada standar/prosedur tertulis), risiko, dan hal yang perlu ditindaklanjuti. Setiap poin ditulis sebagai kalimat lengkap yang menjelaskan apa temuannya DAN mengapa itu menjadi masalah/risiko (bukan hanya frasa singkat), berdasarkan informasi yang memang ada di data di atas — jangan menambah fakta baru. Jika ada informasi yang sama atau beririsan dari beberapa narasumber, gabungkan jadi satu poin saja, jangan diulang-ulang.\n\n"+
-      "Format jawaban WAJIB: baris pertama = kalimat pembuka (kalimat biasa, TANPA bullet/nomor), baris-baris berikutnya = satu poin temuan per baris (TANPA nomor, TANPA simbol bullet seperti -, •, *). TANPA judul/pengantar/penutup lain di luar itu."
+      "Format jawaban WAJIB: baris pertama = kalimat pembuka (kalimat biasa, TANPA bullet/nomor), baris-baris berikutnya = satu poin temuan per baris (TANPA nomor, TANPA simbol bullet seperti -, •, *, TANPA format markdown apapun seperti *miring* atau **tebal**). TANPA judul/pengantar/penutup lain di luar itu."
     );
-    const baris=text.split('\n').map(l=>l.replace(/^[\s\-\*•\d\.\)]+/,'').trim()).filter(l=>l.length>0);
+    const baris=text.split('\n').map(l=>bersihkanMarkdown(l)).filter(l=>l.length>0);
     if(baris.length===0){throw new Error('Tidak ada hasil dari AI')}
     document.getElementById('kesimpulanTemuan').value=baris.join('\n');
     renderPreview();
