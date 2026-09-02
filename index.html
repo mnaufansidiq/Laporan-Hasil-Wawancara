@@ -76,6 +76,7 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <p class="hint">Isi nama narasumber, lalu tulis hasil wawancaranya dalam bentuk paragraf bebas (tidak perlu Enter per baris). Saat ditambahkan, ejaan akan otomatis dirapikan sesuai EYD dan dipecah menjadi poin-poin secara otomatis.</p>
 <div class="form-group"><label>Nama Narasumber</label><input type="text" id="spJudul" placeholder="Contoh: Mas Brahma"></div>
 <div class="form-group"><label>Isi Hasil Wawancara (paragraf bebas)</label><textarea id="spIsi" rows="4" placeholder="Tulis saja hasil wawancara dalam bentuk paragraf, contoh: mas brahma mengatakan bergabung dengan jih tahun 2022 sebagai staff billing dan baru 6 bulan bergabung dengan billing ranap, dia bilang belum terlalu paham soal proses PFA..."></textarea></div>
+<div class="form-group"><label>Level Elaborasi Hasil Rapi</label><select id="levelElaborasi"><option value="ringkas">Ringkas — poin singkat, langsung ke inti</option><option value="standar" selected>Standar — kalimat lengkap dengan konteks secukupnya</option><option value="detail">Detail — kalimat naratif, konteks & implikasi dijelaskan</option></select></div>
 <button class="btn btn-primary" id="btnTambahSP" onclick="tambahSubPoint()">➕ Tambah Segmen</button>
 <button class="btn btn-secondary" id="btnBatalEditSP" onclick="batalEditSubPoint()" style="display:none">✖️ Batal Edit</button>
 <div id="daftarSubPoint" style="margin-top:14px"></div>
@@ -200,13 +201,24 @@ async function callClaudeAI(promptText,timeoutMs=30000){
   throw lastErr;
 }
 
-async function rapikanIsiWawancara(rawText){
+function elaborasiInstruksi(level){
+  if(level==='ringkas'){
+    return "Gaya penulisan: RINGKAS. Setiap poin cukup 1 kalimat pendek dan langsung ke inti informasi, tanpa basa-basi, tetapi tetap kalimat utuh (bukan potongan kata).";
+  }
+  if(level==='detail'){
+    return "Gaya penulisan: DETAIL/NARATIF. Setiap poin ditulis sebagai kalimat yang lebih panjang dan mengalir (boleh 2 kalimat bila perlu), sertakan konteks pendukung yang memang sudah tersirat/tersurat di teks asli (misal: sejak kapan, sudah berapa lama, dalam kondisi apa, dampak/implikasinya terhadap proses kerja) agar pembaca laporan memahami duduk perkara tanpa perlu membaca ulang teks mentah. Tetap dilarang keras menambahkan fakta yang tidak ada dasarnya di teks asli — elaborasi hanya boleh merangkai dan menghubungkan informasi yang memang sudah ada, bukan mengarang data baru.";
+  }
+  return "Gaya penulisan: STANDAR. Setiap poin ditulis sebagai kalimat lengkap dan deskriptif (bukan potongan kata singkat atau frasa terputus), dengan menyertakan secukupnya konteks yang relevan dari teks asli (subjek, kondisi, atau alasan) supaya poin mudah dipahami berdiri sendiri tanpa perlu membaca ulang teks mentahnya. Hindari kalimat yang terlalu telegram/singkat sekali, tapi jangan mengarang informasi baru di luar teks asli.";
+}
+
+async function rapikanIsiWawancara(rawText,level){
   const text=await callClaudeAI(
-    "Anda membantu auditor internal merapikan catatan hasil wawancara audit.\n\n"+
+    "Anda membantu auditor internal merapikan catatan hasil wawancara audit menjadi poin-poin siap pakai untuk laporan Executive Summary.\n\n"+
     "Berikut teks mentah hasil wawancara (bisa berupa paragraf bebas, tidak baku, atau campur bahasa sehari-hari):\n\n"+rawText+"\n\n"+
     "Tugas Anda:\n"+
-    "1. Perbaiki ejaan dan tata bahasa sesuai EYD (Ejaan yang Disempurnakan) Bahasa Indonesia formal, tanpa mengubah makna atau menambahkan informasi yang tidak ada di teks asli.\n"+
-    "2. Pecah menjadi poin-poin terpisah, satu poin untuk satu informasi/fakta.\n\n"+
+    "1. Perbaiki ejaan dan tata bahasa sesuai EYD (Ejaan yang Disempurnakan) Bahasa Indonesia formal, tanpa mengubah makna atau menambahkan informasi/fakta baru yang tidak ada di teks asli.\n"+
+    "2. Pecah menjadi poin-poin terpisah, satu poin untuk satu informasi/fakta.\n"+
+    "3. "+elaborasiInstruksi(level)+"\n\n"+
     "Format jawaban WAJIB: satu poin per baris teks biasa, TANPA nomor, TANPA simbol bullet (-, •, *), TANPA judul/pengantar/penutup apapun. Hanya baris-baris poin."
   );
   return text.split('\n').map(l=>l.replace(/^[\s\-\*•\d\.\)]+/,'').trim()).filter(l=>l.length>0);
@@ -214,6 +226,7 @@ async function rapikanIsiWawancara(rawText){
 
 async function tambahSubPoint(){
   let judul=document.getElementById('spJudul').value.trim(),isiRaw=document.getElementById('spIsi').value.trim();
+  let level=document.getElementById('levelElaborasi').value;
   if(!judul){alert('Nama narasumber wajib diisi!');return}
   if(!isiRaw){alert('Isi hasil wawancara wajib diisi!');return}
 
@@ -224,7 +237,7 @@ async function tambahSubPoint(){
 
   let poin;
   try{
-    poin=await rapikanIsiWawancara(isiRaw);
+    poin=await rapikanIsiWawancara(isiRaw,level);
     if(poin.length===0)throw new Error('Hasil kosong dari AI')
   }catch(err){
     console.error(err);
@@ -297,7 +310,7 @@ async function generateKesimpulanOtomatis(){
       "Berikut hasil wawancara dari unit "+unit+" berdasarkan beberapa narasumber:\n\n"+dataText+"\n\n"+
       "Tugas Anda: buat bagian Kesimpulan & Temuan dalam bahasa Indonesia formal, dengan struktur:\n"+
       "1. Baris pertama: SATU kalimat pembuka singkat yang menyebutkan bahwa berdasarkan hasil wawancara dengan narasumber di unit "+unit+", ditemukan beberapa kesenjangan/temuan yang perlu mendapat perhatian (gaya seperti: 'Berdasarkan hasil wawancara dengan staf "+unit+", ditemukan beberapa kesenjangan yang perlu mendapat perhatian.').\n"+
-      "2. Baris-baris berikutnya: poin-poin temuan (maksimal 10 poin), fokus pada kesenjangan/temuan (gap, ketidaksesuaian, belum ada standar/prosedur tertulis), risiko, dan hal yang perlu ditindaklanjuti. Jika ada informasi yang sama atau beririsan dari beberapa narasumber, gabungkan jadi satu poin saja, jangan diulang-ulang.\n\n"+
+      "2. Baris-baris berikutnya: poin-poin temuan (maksimal 10 poin), fokus pada kesenjangan/temuan (gap, ketidaksesuaian, belum ada standar/prosedur tertulis), risiko, dan hal yang perlu ditindaklanjuti. Setiap poin ditulis sebagai kalimat lengkap yang menjelaskan apa temuannya DAN mengapa itu menjadi masalah/risiko (bukan hanya frasa singkat), berdasarkan informasi yang memang ada di data di atas — jangan menambah fakta baru. Jika ada informasi yang sama atau beririsan dari beberapa narasumber, gabungkan jadi satu poin saja, jangan diulang-ulang.\n\n"+
       "Format jawaban WAJIB: baris pertama = kalimat pembuka (kalimat biasa, TANPA bullet/nomor), baris-baris berikutnya = satu poin temuan per baris (TANPA nomor, TANPA simbol bullet seperti -, •, *). TANPA judul/pengantar/penutup lain di luar itu."
     );
     const baris=text.split('\n').map(l=>l.replace(/^[\s\-\*•\d\.\)]+/,'').trim()).filter(l=>l.length>0);
