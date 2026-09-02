@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Laporan Interview</title>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+<script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#f0f2f5;color:#333}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+header{text-align:center;padding:20px;background:#1a237e;color:white;border-radius:12px;margin-bottom:20px}
+header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:white;border-radius:12px;padding:20px;border:1px solid #e0e0e0;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.panel h3{color:#1a237e;font-size:16px;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #1a237e}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:5px}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:9px 12px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit}
+.form-group textarea{resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{width:100%;padding:12px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+.btn:hover{opacity:0.9}
+.btn-primary{background:#1565c0;color:white}
+.btn-success{background:#2e7d32;color:white;margin-top:10px}
+.btn-secondary{background:#757575;color:white;margin-top:8px;font-size:12px;padding:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#e8eaf6;color:#1a237e;border:1px solid #c5cae9;border-radius:16px;padding:5px 12px;font-size:12px;font-weight:600;margin:0 6px 6px 0}
+.chip button{background:none;border:none;color:#c62828;cursor:pointer;font-weight:700;font-size:13px;line-height:1}
+.item-box{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-bottom:10px;font-size:12px}
+.item-box .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.section-block{background:#f1f3f9;padding:14px;border-radius:8px;margin-bottom:16px}
+.section-block h4{font-size:13px;color:#1a237e;margin-bottom:10px}
+.sub-point-card{background:#fff;border:1px solid #d5d9ea;border-radius:8px;padding:12px;margin-bottom:12px}
+.sub-point-card .sp-title{font-weight:700;color:#1a237e;font-size:13px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.sub-point-card .sp-bullets{font-size:12px;color:#444;padding-left:16px}
+.sub-point-card .sp-bullets li{margin-bottom:3px}
+.hint{font-size:11px;color:#888;font-style:italic;margin-top:-8px;margin-bottom:10px}
+.preview{background:#fafafa;padding:20px;border-radius:8px;font-size:13px;line-height:1.7;max-height:80vh;overflow-y:auto}
+.preview h2{color:#1a237e;font-size:14px;margin:14px 0 6px}
+.preview ul{padding-left:20px;margin-bottom:6px}
+.preview p{margin-bottom:8px}
+.empty-msg{color:#888;font-style:italic;text-align:center;padding:30px}
+.small-btn{padding:4px 9px;font-size:10px;background:#c62828;color:white;border:none;border-radius:4px;cursor:pointer}
+.small-btn-edit{background:#1565c0;margin-right:4px}
+</style>
+</head>
+<body>
+<div class="container">
+<header><h1>Generator Laporan Executive Summary Wawancara</h1></header>
+<div class="grid">
+<div class="panel">
+<h3>📥 Data Laporan</h3>
+
+<div class="form-group"><label>Judul Laporan</label><input type="text" id="judulLaporan" value="EXECUTIVE SUMMARY HASIL WAWANCARA"></div>
+<div class="form-group"><label>Nama Unit yang Diinterview</label><input type="text" id="namaUnit" placeholder="Contoh: UNIT PRICING"></div>
+<div class="form-row"><div class="form-group"><label>Tanggal Interview</label><input type="date" id="tanggalInterview"></div><div class="form-group"><label>Periode Kunjungan (untuk paragraf)</label><input type="text" id="periodeKunjungan" placeholder="Contoh: 28–29 April 2026"></div></div>
+
+<div class="section-block">
+<h4>👤 Nama Auditor</h4>
+<div class="form-row"><div class="form-group" style="margin-bottom:0"><input type="text" id="auditorInput" placeholder="Nama auditor"></div><div class="form-group" style="margin-bottom:0"><input type="text" id="auditorIdInput" placeholder="ID Number"></div></div>
+<button type="button" class="btn btn-primary" style="width:auto;padding:9px 16px;margin-top:8px" onclick="tambahAuditor()">➕ Tambah</button>
+<div id="daftarAuditor" style="margin-top:10px"></div>
+</div>
+
+<div class="section-block">
+<h4>🧑‍💼 Auditee yang Diwawancara (Nama & Jabatan)</h4>
+<div class="form-row"><div class="form-group" style="margin-bottom:0"><input type="text" id="auditeeNama" placeholder="Nama"></div><div class="form-group" style="margin-bottom:0"><input type="text" id="auditeeJabatan" placeholder="Jabatan"></div></div>
+<button type="button" class="btn btn-secondary" onclick="tambahAuditee()">➕ Tambah Auditee</button>
+<div id="daftarAuditee" style="margin-top:10px"></div>
+</div>
+
+<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">
+<h3 style="color:#1565c0;font-size:14px;margin-bottom:12px">🧩 Segmen Hasil Wawancara (per Narasumber)</h3>
+<p class="hint">Isi nama narasumber, lalu tulis hasil wawancaranya dalam bentuk paragraf bebas (tidak perlu Enter per baris). Saat ditambahkan, ejaan akan otomatis dirapikan sesuai EYD dan dipecah menjadi poin-poin secara otomatis.</p>
+<div class="form-group"><label>Nama Narasumber</label><input type="text" id="spJudul" placeholder="Contoh: Mas Brahma"></div>
+<div class="form-group"><label>Isi Hasil Wawancara (paragraf bebas)</label><textarea id="spIsi" rows="4" placeholder="Tulis saja hasil wawancara dalam bentuk paragraf, contoh: mas brahma mengatakan bergabung dengan jih tahun 2022 sebagai staff billing dan baru 6 bulan bergabung dengan billing ranap, dia bilang belum terlalu paham soal proses PFA..."></textarea></div>
+<button class="btn btn-primary" id="btnTambahSP" onclick="tambahSubPoint()">➕ Tambah Segmen</button>
+<button class="btn btn-secondary" id="btnBatalEditSP" onclick="batalEditSubPoint()" style="display:none">✖️ Batal Edit</button>
+<div id="daftarSubPoint" style="margin-top:14px"></div>
+
+<hr style="border:none;border-top:1px solid #ddd;margin:16px 0">
+<h3 style="color:#1a237e;font-size:14px;margin-bottom:12px">✅ Kesimpulan & Temuan</h3>
+<p class="hint">Baris pertama = kalimat pembuka (paragraf singkat), baris-baris berikutnya = poin-poin temuan (satu poin per baris, Enter). Atau klik tombol di bawah untuk membuat otomatis dari seluruh segmen wawancara yang sudah diisi — hasilnya tetap bisa diedit.</p>
+<button type="button" class="btn btn-secondary" id="btnRingkasOtomatis" onclick="generateKesimpulanOtomatis()" style="margin-bottom:10px">🤖 Generate Ringkasan Otomatis</button>
+<div class="form-group"><textarea id="kesimpulanTemuan" rows="6" placeholder="Baris pertama: kalimat pembuka, contoh: Berdasarkan hasil wawancara dengan staf Billing Rawat Inap, ditemukan beberapa kesenjangan yang perlu mendapat perhatian.&#10;Baris berikutnya: poin-poin temuan, satu poin per baris&#10;Pedoman Organisasi belum diperbarui...&#10;Belum ada standar tertulis terkait..."></textarea></div>
+
+<button class="btn btn-success" onclick="generateDOCX()">📄 Generate & Download .docx</button>
+</div>
+
+<div class="panel">
+<h3>📋 Preview</h3>
+<div class="preview" id="previewContent"><p class="empty-msg">Preview akan muncul setelah Anda mengisi data.</p></div>
+</div>
+</div>
+</div>
+
+<script>
+let auditorList=[],auditeeList=[],subPointList=[],editingIndexSP=-1;
+
+/* ---------- Nama Auditor ---------- */
+function tambahAuditor(){
+  let nama=document.getElementById('auditorInput').value.trim();
+  let id=document.getElementById('auditorIdInput').value.trim();
+  if(!nama){alert('Nama auditor wajib diisi!');return}
+  auditorList.push({nama,id});
+  document.getElementById('auditorInput').value='';
+  document.getElementById('auditorIdInput').value='';
+  renderDaftarAuditor();renderPreview();
+}
+function hapusAuditor(i){auditorList.splice(i,1);renderDaftarAuditor();renderPreview()}
+function renderDaftarAuditor(){
+  let c=document.getElementById('daftarAuditor');
+  if(auditorList.length===0){c.innerHTML='';return}
+  let h='';
+  auditorList.forEach((a,i)=>{h+='<span class="chip">'+esc(a.nama)+(a.id?' — ID: '+esc(a.id):'')+' <button onclick="hapusAuditor('+i+')">✕</button></span>'});
+  c.innerHTML=h;
+}
+function formatAuditor(a){return a.nama+(a.id?' ('+a.id+')':'')}
+
+/* ---------- Auditee ---------- */
+function tambahAuditee(){
+  let nama=document.getElementById('auditeeNama').value.trim(),jabatan=document.getElementById('auditeeJabatan').value.trim();
+  if(!nama){alert('Nama auditee wajib diisi!');return}
+  auditeeList.push({nama,jabatan});
+  document.getElementById('auditeeNama').value='';
+  document.getElementById('auditeeJabatan').value='';
+  renderDaftarAuditee();renderPreview();
+}
+function hapusAuditee(i){auditeeList.splice(i,1);renderDaftarAuditee();renderPreview()}
+function ringkasJabatan(){
+  let unik=[...new Set(auditeeList.map(a=>a.jabatan).filter(Boolean))];
+  if(unik.length===0)return '…………';
+  if(unik.length===1)return unik[0];
+  return unik.slice(0,-1).join(', ')+' dan '+unik[unik.length-1];
+}
+function renderDaftarAuditee(){
+  let c=document.getElementById('daftarAuditee');
+  if(auditeeList.length===0){c.innerHTML='';return}
+  let h='';
+  auditeeList.forEach((a,i)=>{
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;background:white;border:1px solid #ddd;border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:12px"><span><strong>'+esc(a.nama)+'</strong>'+(a.jabatan?' — '+esc(a.jabatan):'')+'</span><button class="small-btn" onclick="hapusAuditee('+i+')">Hapus</button></div>';
+  });
+  c.innerHTML=h;
+}
+
+/* ---------- Segmen (per Narasumber) ---------- */
+function linesFromText(t){return (t||'').split('\n').map(l=>l.trim()).filter(l=>l.length>0)}
+function renderPoinLine(line){return esc(line)}
+function parseKesimpulan(text){
+  let baris=(text||'').split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  if(baris.length===0)return {intro:'',poin:[]};
+  return {intro:baris[0],poin:baris.slice(1)};
+}
+
+/* ---------- Helper pemanggil AI: timeout + retry otomatis + pesan error jelas ---------- */
+async function callClaudeAI(promptText,timeoutMs=30000){
+  let lastErr;
+  for(let attempt=1;attempt<=2;attempt++){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),timeoutMs);
+    try{
+      const response=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:promptText}]}),
+        signal:controller.signal
+      });
+      clearTimeout(timer);
+      if(!response.ok){
+        if(attempt===1&&(response.status===429||response.status>=500)){
+          await new Promise(r=>setTimeout(r,1500));
+          continue;
+        }
+        if(response.status===429)throw new Error('AI sedang sibuk (terlalu banyak permintaan). Coba lagi sebentar lagi.');
+        if(response.status>=500)throw new Error('Server AI sedang bermasalah. Coba lagi sebentar lagi.');
+        throw new Error('AI mengembalikan error (kode '+response.status+').');
+      }
+      const data=await response.json();
+      const text=data.content.map(b=>b.text||"").filter(Boolean).join("\n").trim();
+      if(!text)throw new Error('AI tidak memberikan hasil apa pun. Coba lagi.');
+      return text;
+    }catch(err){
+      clearTimeout(timer);
+      if(err.name==='AbortError'){
+        lastErr=new Error('Permintaan ke AI terlalu lama / tidak merespons (timeout 30 detik).');
+        if(attempt===1)continue;
+      }else{
+        lastErr=err;
+        if(attempt===1&&!err.message.startsWith('AI ')&&!err.message.startsWith('Server AI')){continue}
+      }
+      break;
+    }
+  }
+  throw lastErr;
+}
+
+async function rapikanIsiWawancara(rawText){
+  const text=await callClaudeAI(
+    "Anda membantu auditor internal merapikan catatan hasil wawancara audit.\n\n"+
+    "Berikut teks mentah hasil wawancara (bisa berupa paragraf bebas, tidak baku, atau campur bahasa sehari-hari):\n\n"+rawText+"\n\n"+
+    "Tugas Anda:\n"+
+    "1. Perbaiki ejaan dan tata bahasa sesuai EYD (Ejaan yang Disempurnakan) Bahasa Indonesia formal, tanpa mengubah makna atau menambahkan informasi yang tidak ada di teks asli.\n"+
+    "2. Pecah menjadi poin-poin terpisah, satu poin untuk satu informasi/fakta.\n\n"+
+    "Format jawaban WAJIB: satu poin per baris teks biasa, TANPA nomor, TANPA simbol bullet (-, •, *), TANPA judul/pengantar/penutup apapun. Hanya baris-baris poin."
+  );
+  return text.split('\n').map(l=>l.replace(/^[\s\-\*•\d\.\)]+/,'').trim()).filter(l=>l.length>0);
+}
+
+async function tambahSubPoint(){
+  let judul=document.getElementById('spJudul').value.trim(),isiRaw=document.getElementById('spIsi').value.trim();
+  if(!judul){alert('Nama narasumber wajib diisi!');return}
+  if(!isiRaw){alert('Isi hasil wawancara wajib diisi!');return}
+
+  let btn=document.getElementById('btnTambahSP');
+  let originalText=btn.textContent;
+  btn.textContent='⏳ Merapikan...';
+  btn.disabled=true;
+
+  let poin;
+  try{
+    poin=await rapikanIsiWawancara(isiRaw);
+    if(poin.length===0)throw new Error('Hasil kosong dari AI')
+  }catch(err){
+    console.error(err);
+    poin=linesFromText(isiRaw);
+    alert('⚠️ Gagal merapikan otomatis.\n\n'+err.message+'\n\nSegmen tetap disimpan apa adanya dari teks yang Anda tulis (belum dirapikan EYD) — bisa diedit manual, atau hapus & coba tambah lagi nanti.');
+  }
+  btn.textContent=originalText;
+  btn.disabled=false;
+
+  let data={judul,poin};
+  if(editingIndexSP>=0){subPointList[editingIndexSP]=data;editingIndexSP=-1;document.getElementById('btnTambahSP').textContent='➕ Tambah Segmen';document.getElementById('btnBatalEditSP').style.display='none'}
+  else{subPointList.push(data)}
+  document.getElementById('spJudul').value='';
+  document.getElementById('spIsi').value='';
+  renderDaftarSubPoint();renderPreview();
+}
+function editSubPoint(i){
+  let sp=subPointList[i];
+  document.getElementById('spJudul').value=sp.judul;
+  document.getElementById('spIsi').value=sp.poin.join('\n');
+  editingIndexSP=i;
+  document.getElementById('btnTambahSP').textContent='💾 Simpan Perubahan';
+  document.getElementById('btnBatalEditSP').style.display='block';
+  window.scrollTo({top:document.getElementById('spJudul').getBoundingClientRect().top+window.scrollY-100,behavior:'smooth'});
+}
+function batalEditSubPoint(){
+  editingIndexSP=-1;
+  document.getElementById('spJudul').value='';
+  document.getElementById('spIsi').value='';
+  document.getElementById('btnTambahSP').textContent='➕ Tambah Segmen';
+  document.getElementById('btnBatalEditSP').style.display='none';
+}
+function hapusSubPoint(i){subPointList.splice(i,1);renderDaftarSubPoint();renderPreview()}
+function pindahSubPoint(i,dir){
+  let j=i+dir;
+  if(j<0||j>=subPointList.length)return;
+  [subPointList[i],subPointList[j]]=[subPointList[j],subPointList[i]];
+  renderDaftarSubPoint();renderPreview();
+}
+function renderDaftarSubPoint(){
+  let c=document.getElementById('daftarSubPoint');
+  if(subPointList.length===0){c.innerHTML='';return}
+  let h='';
+  subPointList.forEach((sp,i)=>{
+    h+='<div class="sub-point-card"><div class="sp-title"><span>'+esc(sp.judul)+'</span><span>';
+    h+='<button class="small-btn small-btn-edit" onclick="pindahSubPoint('+i+',-1)" style="background:#757575">↑</button> ';
+    h+='<button class="small-btn small-btn-edit" onclick="pindahSubPoint('+i+',1)" style="background:#757575">↓</button> ';
+    h+='<button class="small-btn small-btn-edit" onclick="editSubPoint('+i+')">Edit</button>';
+    h+='<button class="small-btn" onclick="hapusSubPoint('+i+')">Hapus</button></span></div>';
+    h+='<ul class="sp-bullets">'+sp.poin.map(p=>'<li>'+renderPoinLine(p)+'</li>').join('')+'</ul></div>';
+  });
+  c.innerHTML=h;
+}
+
+/* ---------- Ringkasan Otomatis (AI) ---------- */
+async function generateKesimpulanOtomatis(){
+  if(subPointList.length===0){alert('Isi minimal 1 segmen hasil wawancara dulu sebelum membuat ringkasan otomatis!');return}
+
+  let unit=document.getElementById('namaUnit').value||'-';
+  let dataText=subPointList.map(sp=>sp.judul+' :\n'+sp.poin.map(p=>'- '+p).join('\n')).join('\n\n');
+
+  let btn=document.getElementById('btnRingkasOtomatis');
+  let originalText=btn.textContent;
+  btn.textContent='⏳ Membuat ringkasan...';
+  btn.disabled=true;
+
+  try{
+    const text=await callClaudeAI(
+      "Anda membantu auditor internal merangkum hasil wawancara audit menjadi bagian Kesimpulan & Temuan pada laporan Executive Summary.\n\n"+
+      "Berikut hasil wawancara dari unit "+unit+" berdasarkan beberapa narasumber:\n\n"+dataText+"\n\n"+
+      "Tugas Anda: buat bagian Kesimpulan & Temuan dalam bahasa Indonesia formal, dengan struktur:\n"+
+      "1. Baris pertama: SATU kalimat pembuka singkat yang menyebutkan bahwa berdasarkan hasil wawancara dengan narasumber di unit "+unit+", ditemukan beberapa kesenjangan/temuan yang perlu mendapat perhatian (gaya seperti: 'Berdasarkan hasil wawancara dengan staf "+unit+", ditemukan beberapa kesenjangan yang perlu mendapat perhatian.').\n"+
+      "2. Baris-baris berikutnya: poin-poin temuan (maksimal 10 poin), fokus pada kesenjangan/temuan (gap, ketidaksesuaian, belum ada standar/prosedur tertulis), risiko, dan hal yang perlu ditindaklanjuti. Jika ada informasi yang sama atau beririsan dari beberapa narasumber, gabungkan jadi satu poin saja, jangan diulang-ulang.\n\n"+
+      "Format jawaban WAJIB: baris pertama = kalimat pembuka (kalimat biasa, TANPA bullet/nomor), baris-baris berikutnya = satu poin temuan per baris (TANPA nomor, TANPA simbol bullet seperti -, •, *). TANPA judul/pengantar/penutup lain di luar itu."
+    );
+    const baris=text.split('\n').map(l=>l.replace(/^[\s\-\*•\d\.\)]+/,'').trim()).filter(l=>l.length>0);
+    if(baris.length===0){throw new Error('Tidak ada hasil dari AI')}
+    document.getElementById('kesimpulanTemuan').value=baris.join('\n');
+    renderPreview();
+  }catch(err){
+    console.error(err);
+    alert('❌ Gagal membuat ringkasan otomatis!\n\n'+err.message+'\n\nIsi yang sudah ada di kolom Kesimpulan tidak berubah — silakan coba lagi atau isi manual.');
+  }finally{
+    btn.textContent=originalText;
+    btn.disabled=false;
+  }
+}
+
+/* ---------- Helpers ---------- */
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fmtTanggal(iso){
+  if(!iso)return '…………………..';
+  let d=new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+}
+
+/* ---------- Preview ---------- */
+function renderPreview(){
+  let judul=document.getElementById('judulLaporan').value||'EXECUTIVE SUMMARY HASIL WAWANCARA';
+  let unit=document.getElementById('namaUnit').value||'-';
+  let tglInterview=fmtTanggal(document.getElementById('tanggalInterview').value);
+  let unitAuditee=unit;
+  let periode=document.getElementById('periodeKunjungan').value||'…………';
+  let jabatanRingkas=ringkasJabatan();
+  let kesimpulan=parseKesimpulan(document.getElementById('kesimpulanTemuan').value);
+
+  if(!unit&&auditorList.length===0&&auditeeList.length===0&&subPointList.length===0){
+    document.getElementById('previewContent').innerHTML='<p class="empty-msg">Preview akan muncul setelah Anda mengisi data.</p>';
+    return;
+  }
+
+  let h='';
+  h+='<p style="text-align:center;font-weight:700">'+esc(judul)+'</p>';
+  h+='<p style="text-align:center;font-weight:700">'+esc(unit)+'</p><br>';
+  h+='<p><strong>Nama Auditor</strong> : '+(auditorList.length?auditorList.map(a=>esc(formatAuditor(a))).join(', '):'-')+'</p>';
+  h+='<p><strong>Tanggal Interview</strong> : '+tglInterview+'</p>';
+  h+='<p><strong>Unit Auditee</strong> : '+esc(unitAuditee)+'</p>';
+
+  h+='<p>Pada tanggal '+esc(periode)+', tim auditor melaksanakan kunjungan ke '+esc(unit)+' dalam rangka menjalankan prosedur audit yaitu observasi dan wawancara. Pengumpulan informasi dilakukan terhadap auditee yang terdiri atas '+esc(jabatanRingkas)+' sesuai dengan struktur resmi '+esc(unit)+'.</p>';
+  h+='<p>Dalam proses pengumpulan data, tim auditor menerapkan metode matching information dari tingkat atas hingga tingkat bawah. Berikut nama-nama auditee beserta jabatannya:</p>';
+  h+='<ul>'+(auditeeList.length?auditeeList.map(a=>'<li>'+esc(a.nama)+(a.jabatan?' — '+esc(a.jabatan):'')+'</li>').join(''):'<li>-</li>')+'</ul>';
+
+  if(subPointList.length>0){
+    h+='<p>Berikut detail informasi yang didapatkan tim auditor dari auditee di atas:</p>';
+    subPointList.forEach((sp,i)=>{
+      h+='<h2>'+esc(sp.judul)+' :</h2>';
+      h+='<ul>'+sp.poin.map(p=>'<li>'+renderPoinLine(p)+'</li>').join('')+'</ul>';
+    });
+  }
+
+  h+='<h2>Kesimpulan & Temuan</h2>';
+  if(kesimpulan.intro){h+='<p>'+esc(kesimpulan.intro)+'</p>'}
+  h+='<ul>'+(kesimpulan.poin.length?kesimpulan.poin.map(p=>'<li>'+renderPoinLine(p)+'</li>').join(''):'<li>-</li>')+'</ul>';
+
+  document.getElementById('previewContent').innerHTML=h;
+}
+
+/* ---------- Generate DOCX ---------- */
+async function generateDOCX(){
+ try{
+  let judul=document.getElementById('judulLaporan').value||'EXECUTIVE SUMMARY HASIL WAWANCARA';
+  let unit=document.getElementById('namaUnit').value||'-';
+  let tglInterview=fmtTanggal(document.getElementById('tanggalInterview').value);
+  let unitAuditee=unit;
+  let periode=document.getElementById('periodeKunjungan').value||'…………';
+  let jabatanRingkas=ringkasJabatan();
+  let kesimpulan=parseKesimpulan(document.getElementById('kesimpulanTemuan').value);
+
+  if(unit==='-'){alert('Nama Unit yang Diinterview wajib diisi!');return}
+
+  const {Document,Packer,Paragraph,TextRun,HeadingLevel,AlignmentType,convertInchesToTwip}=docx;
+  const fontSize=22;
+
+  function bulletParas(lines){
+    return lines.map(l=>new Paragraph({children:[new TextRun({text:l,size:fontSize})],bullet:{level:0},spacing:{after:80}}));
+  }
+
+  let children=[];
+  children.push(new Paragraph({children:[new TextRun({text:judul,bold:true,size:28})],alignment:AlignmentType.CENTER,spacing:{after:60}}));
+  children.push(new Paragraph({children:[new TextRun({text:unit,bold:true,size:26})],alignment:AlignmentType.CENTER,spacing:{after:300}}));
+
+  children.push(new Paragraph({children:[new TextRun({text:'Nama Auditor\t\t: ',bold:true,size:fontSize}),new TextRun({text:auditorList.length?auditorList.map(formatAuditor).join(', '):'-',size:fontSize})],spacing:{after:60}}));
+  children.push(new Paragraph({children:[new TextRun({text:'Tanggal Interview\t: ',bold:true,size:fontSize}),new TextRun({text:tglInterview,size:fontSize})],spacing:{after:60}}));
+  children.push(new Paragraph({children:[new TextRun({text:'Unit Auditee\t\t: ',bold:true,size:fontSize}),new TextRun({text:unitAuditee,size:fontSize})],spacing:{after:200}}));
+
+  children.push(new Paragraph({text:'Pada tanggal '+periode+', tim auditor melaksanakan kunjungan ke '+unit+' dalam rangka menjalankan prosedur audit yaitu observasi dan wawancara. Pengumpulan informasi dilakukan terhadap auditee yang terdiri atas '+jabatanRingkas+' sesuai dengan struktur resmi '+unit+'.',size:fontSize,spacing:{after:150}}));
+  children.push(new Paragraph({text:'Dalam proses pengumpulan data, tim auditor menerapkan metode matching information dari tingkat atas hingga tingkat bawah. Pendekatan ini diharapkan dapat memberikan informasi yang memadai guna menjadi indikator dalam penilaian audit. Berikut nama-nama auditee beserta jabatannya:',size:fontSize,spacing:{after:100}}));
+  if(auditeeList.length>0){
+    children=children.concat(bulletParas(auditeeList.map(a=>a.nama+(a.jabatan?' — '+a.jabatan:''))));
+  }else{
+    children.push(new Paragraph({text:'-',size:fontSize}));
+  }
+  children.push(new Paragraph({spacing:{after:150}}));
+
+  if(subPointList.length>0){
+    children.push(new Paragraph({text:'Berikut detail informasi yang didapatkan tim auditor dari auditee di atas:',size:fontSize,spacing:{after:200}}));
+    subPointList.forEach((sp,i)=>{
+      children.push(new Paragraph({children:[new TextRun({text:sp.judul+' :',bold:true,size:fontSize})],spacing:{before:200,after:80}}));
+      children=children.concat(bulletParas(sp.poin));
+    });
+  }
+
+  children.push(new Paragraph({children:[new TextRun({text:'Kesimpulan & Temuan',bold:true,color:'1A237E',size:26})],spacing:{before:300,after:150}}));
+  if(kesimpulan.intro){
+    children.push(new Paragraph({text:kesimpulan.intro,size:fontSize,alignment:AlignmentType.JUSTIFIED,spacing:{after:100}}));
+  }
+  if(kesimpulan.poin.length>0){
+    children=children.concat(bulletParas(kesimpulan.poin));
+  }else if(!kesimpulan.intro){
+    children.push(new Paragraph({text:'-',size:fontSize}));
+  }
+
+  let doc=new Document({sections:[{properties:{page:{margin:{top:convertInchesToTwip(1),bottom:convertInchesToTwip(1),left:convertInchesToTwip(1),right:convertInchesToTwip(1)}}},children:children}]});
+  let blob=await Packer.toBlob(doc);
+  let filename='Executive_Summary_Wawancara_'+unit.replace(/\s+/g,'_').substring(0,30)+'.docx';
+  saveAs(blob,filename);
+ }catch(err){
+  console.error(err);
+  alert('❌ Gagal generate dokumen!\n\nError: '+err.message);
+ }
+}
+
+['judulLaporan','namaUnit','tanggalInterview','periodeKunjungan','kesimpulanTemuan'].forEach(id=>{document.getElementById(id).addEventListener('input',renderPreview)});
+</script>
+</body>
+</html>
