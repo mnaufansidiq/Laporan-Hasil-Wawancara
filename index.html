@@ -155,16 +155,20 @@ function parseKesimpulan(text){
 }
 
 /* ---------- Helper pemanggil AI: timeout + retry otomatis + pesan error jelas ---------- */
+// PENTING: Ganti URL di bawah ini dengan URL Worker Cloudflare-mu sendiri,
+// contoh: "https://wawancara-ai-proxy.namamu.workers.dev"
+const AI_PROXY_URL="https://wawancara-ai-proxy.mnaufansidiq.workers.dev";
+
 async function callClaudeAI(promptText,timeoutMs=30000){
   let lastErr;
   for(let attempt=1;attempt<=2;attempt++){
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),timeoutMs);
     try{
-      const response=await fetch("https://api.anthropic.com/v1/messages",{
+      const response=await fetch(AI_PROXY_URL,{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:promptText}]}),
+        body:JSON.stringify({prompt:promptText}),
         signal:controller.signal
       });
       clearTimeout(timer);
@@ -178,7 +182,7 @@ async function callClaudeAI(promptText,timeoutMs=30000){
         throw new Error('AI mengembalikan error (kode '+response.status+').');
       }
       const data=await response.json();
-      const text=data.content.map(b=>b.text||"").filter(Boolean).join("\n").trim();
+      const text=(data.text||"").trim();
       if(!text)throw new Error('AI tidak memberikan hasil apa pun. Coba lagi.');
       return text;
     }catch(err){
