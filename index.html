@@ -218,15 +218,17 @@ function elaborasiInstruksi(level){
   return "Gaya penulisan: STANDAR. Setiap poin ditulis sebagai kalimat lengkap dan deskriptif (bukan potongan kata singkat atau frasa terputus), dengan menyertakan secukupnya konteks yang relevan dari teks asli (subjek, kondisi, atau alasan) supaya poin mudah dipahami berdiri sendiri tanpa perlu membaca ulang teks mentahnya. Hindari kalimat yang terlalu telegram/singkat sekali, tapi jangan mengarang informasi baru di luar teks asli.";
 }
 
-async function rapikanIsiWawancara(rawText,level){
+async function rapikanIsiWawancara(rawText,level,unit){
   const text=await callClaudeAI(
     "Anda membantu auditor internal merapikan catatan hasil wawancara audit menjadi poin-poin siap pakai untuk laporan Executive Summary.\n\n"+
+    "Nama unit/departemen yang sedang diaudit: "+(unit||'-')+"\n\n"+
     "Berikut teks mentah hasil wawancara (bisa berupa paragraf bebas, tidak baku, atau campur bahasa sehari-hari):\n\n"+rawText+"\n\n"+
     "Tugas Anda:\n"+
     "1. Perbaiki ejaan dan tata bahasa sesuai EYD (Ejaan yang Disempurnakan) Bahasa Indonesia formal, tanpa mengubah makna atau menambahkan informasi/fakta baru yang tidak ada di teks asli.\n"+
     "2. Pecah menjadi poin-poin terpisah, satu poin untuk satu informasi/fakta.\n"+
     "3. "+elaborasiInstruksi(level)+"\n"+
-    "4. Karena setiap poin sudah berada di bawah nama narasumbernya masing-masing, JANGAN mengulang-ulang jabatan/peran narasumber (misalnya 'Staf Customer Service') sebagai subjek di setiap poin. Gunakan kata 'Auditee' sebagai subjek standar di awal kalimat/poin (contoh: 'Auditee menyatakan bahwa...', 'Auditee bertanggung jawab atas...'), kecuali bila konteks memang memerlukan penyebutan jabatan/pihak lain secara spesifik untuk kejelasan.\n\n"+
+    "4. Tulis setiap poin sebagai PERNYATAAN FAKTA gaya laporan pihak ketiga (seperti auditor menuliskan temuan), BUKAN sebagai kutipan berulang seperti 'Auditee menyatakan bahwa...' atau 'Narasumber mengatakan...' di setiap poin — langsung tulis faktanya. Contoh: bukan 'Auditee menyatakan bahwa unit Customer Service tidak ada rapat rutin' tapi cukup 'Unit "+(unit||'terkait')+" tidak menyelenggarakan rapat rutin'.\n"+
+    "5. Pilih subjek kalimat sesuai konteks tiap poin: jika informasinya tentang unit/departemen secara keseluruhan, gunakan nama unit ("+(unit||'unit terkait')+") sebagai subjek. Jika informasinya spesifik tentang narasumber itu sendiri (pengalaman, pendapat, atau tanggung jawab pribadinya), gunakan kata 'Auditee' atau jabatannya sebagai subjek. Jangan memaksakan satu kata subjek yang sama untuk semua poin.\n\n"+
     "Format jawaban WAJIB: satu poin per baris teks biasa, TANPA nomor, TANPA simbol bullet (-, •). Boleh menandai istilah/nama entitas penting dengan *tanda bintang tunggal* jika membantu penekanan, tapi jangan berlebihan. TANPA judul/pengantar/penutup apapun. Hanya baris-baris poin."
   );
   return text.split('\n').map(l=>bersihkanBaris(l)).filter(l=>l.length>0);
@@ -268,7 +270,8 @@ async function tambahSubPoint(){
 
   let poin;
   try{
-    poin=await rapikanIsiWawancara(isiRaw,level);
+    let unit=document.getElementById('namaUnit').value.trim();
+    poin=await rapikanIsiWawancara(isiRaw,level,unit);
     if(poin.length===0)throw new Error('Hasil kosong dari AI')
   }catch(err){
     console.error(err);
@@ -341,7 +344,7 @@ async function generateKesimpulanOtomatis(){
       "Berikut hasil wawancara dari unit "+unit+" berdasarkan beberapa narasumber:\n\n"+dataText+"\n\n"+
       "Tugas Anda: buat bagian Kesimpulan & Temuan dalam bahasa Indonesia formal, dengan struktur:\n"+
       "1. Baris pertama: SATU kalimat pembuka singkat yang menyebutkan bahwa berdasarkan hasil wawancara dengan narasumber di unit "+unit+", ditemukan beberapa kesenjangan/temuan yang perlu mendapat perhatian (gaya seperti: 'Berdasarkan hasil wawancara dengan staf "+unit+", ditemukan beberapa kesenjangan yang perlu mendapat perhatian.').\n"+
-      "2. Baris-baris berikutnya: poin-poin temuan (maksimal 10 poin), fokus pada kesenjangan/temuan (gap, ketidaksesuaian, belum ada standar/prosedur tertulis), risiko, dan hal yang perlu ditindaklanjuti. Setiap poin ditulis sebagai kalimat lengkap yang menjelaskan apa temuannya DAN mengapa itu menjadi masalah/risiko (bukan hanya frasa singkat), berdasarkan informasi yang memang ada di data di atas — jangan menambah fakta baru. Gunakan kata 'Auditee' sebagai subjek standar (bukan mengulang-ulang jabatan seperti 'Staf Customer Service' di tiap poin), kecuali memang perlu menyebut jabatan/pihak spesifik untuk kejelasan. Jika ada informasi yang sama atau beririsan dari beberapa narasumber, gabungkan jadi satu poin saja, jangan diulang-ulang.\n\n"+
+      "2. Baris-baris berikutnya: poin-poin temuan (maksimal 10 poin), fokus pada kesenjangan/temuan (gap, ketidaksesuaian, belum ada standar/prosedur tertulis), risiko, dan hal yang perlu ditindaklanjuti. Setiap poin ditulis sebagai kalimat lengkap yang menjelaskan apa temuannya DAN mengapa itu menjadi masalah/risiko (bukan hanya frasa singkat), berdasarkan informasi yang memang ada di data di atas — jangan menambah fakta baru. Tulis sebagai PERNYATAAN FAKTA gaya laporan pihak ketiga (bukan kutipan berulang seperti 'Auditee menyatakan bahwa...'); pilih subjek sesuai konteks — kalau membahas unit/departemen secara keseluruhan gunakan nama unit ("+unit+") sebagai subjek, kalau spesifik tentang narasumber tertentu gunakan 'Auditee' atau jabatannya. Jika ada informasi yang sama atau beririsan dari beberapa narasumber, gabungkan jadi satu poin saja, jangan diulang-ulang.\n\n"+
       "Format jawaban WAJIB: baris pertama = kalimat pembuka (kalimat biasa, TANPA bullet/nomor), baris-baris berikutnya = satu poin temuan per baris (TANPA nomor, TANPA simbol bullet seperti -, •). Boleh menandai istilah/nama entitas penting dengan *tanda bintang tunggal* jika membantu penekanan, tapi jangan berlebihan. TANPA judul/pengantar/penutup lain di luar itu."
     );
     const baris=text.split('\n').map(l=>bersihkanBaris(l)).filter(l=>l.length>0);
