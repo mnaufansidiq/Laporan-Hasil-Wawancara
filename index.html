@@ -49,13 +49,30 @@ header h1{font-size:22px}header p{font-size:13px;opacity:0.9;margin-top:4px}
 <body>
 <div class="container">
 <header><h1>Generator Laporan Executive Summary Wawancara</h1></header>
+
+<div id="draftBanner" style="display:none;background:#fff8e1;border:1px solid #ffca28;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <span id="draftBannerText" style="font-size:13px;color:#5d4a00"></span>
+  <span>
+    <button type="button" class="btn btn-primary" style="width:auto;padding:8px 14px;font-size:12px" onclick="lanjutkanDraft()">▶️ Lanjutkan Draft</button>
+    <button type="button" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:12px;display:inline-block" onclick="mulaiBaru()">🆕 Mulai Baru</button>
+  </span>
+</div>
+
+<div style="background:white;border:1px solid #e0e0e0;border-radius:10px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+  <span id="statusSimpan" style="font-size:12px;color:#777">Belum ada draft tersimpan.</span>
+  <span>
+    <button type="button" class="btn btn-success" style="width:auto;padding:8px 14px;font-size:12px;margin-top:0" onclick="simpanDraft(true)">💾 Simpan Sekarang</button>
+    <button type="button" class="btn btn-secondary" style="width:auto;padding:8px 14px;font-size:12px;margin-top:0;display:inline-block;background:#c62828" onclick="hapusDraft(true)">🗑️ Hapus Draft</button>
+  </span>
+</div>
+
 <div class="grid">
 <div class="panel">
 <h3>📥 Data Laporan</h3>
 
 <div class="form-group"><label>Judul Laporan</label><input type="text" id="judulLaporan" value="EXECUTIVE SUMMARY HASIL WAWANCARA"></div>
 <div class="form-group"><label>Nama Unit yang Diinterview</label><input type="text" id="namaUnit" placeholder="Contoh: UNIT PRICING"></div>
-<div class="form-row"><div class="form-group"><label>Tanggal Interview</label><input type="date" id="tanggalInterview"></div><div class="form-group"><label>Periode Kunjungan (untuk paragraf)</label><input type="text" id="periodeKunjungan" placeholder="Contoh: 28–29 April 2026"></div></div>
+<div class="form-row"><div class="form-group"><label>Tanggal Laporan</label><input type="date" id="tanggalInterview"></div><div class="form-group"><label>Periode Kunjungan (untuk paragraf)</label><input type="text" id="periodeKunjungan" placeholder="Contoh: 28–29 April 2026"></div></div>
 
 <div class="section-block">
 <h4>👤 Nama Auditor</h4>
@@ -387,7 +404,7 @@ function renderPreview(){
   h+='<p style="text-align:center;font-weight:700">'+esc(judul)+'</p>';
   h+='<p style="text-align:center;font-weight:700">'+esc(unit)+'</p><br>';
   h+='<p><strong>Nama Auditor</strong> : '+(auditorList.length?auditorList.map(a=>esc(formatAuditor(a))).join(', '):'-')+'</p>';
-  h+='<p><strong>Tanggal Interview</strong> : '+tglInterview+'</p>';
+  h+='<p><strong>Tanggal Laporan</strong> : '+tglInterview+'</p>';
   h+='<p><strong>Unit Auditee</strong> : '+esc(unitAuditee)+'</p>';
 
   h+='<p>Pada tanggal '+esc(periode)+', tim auditor melaksanakan kunjungan ke '+esc(unit)+' dalam rangka menjalankan prosedur audit yaitu observasi dan wawancara. Pengumpulan informasi dilakukan terhadap auditee yang terdiri atas '+esc(jabatanRingkas)+' sesuai dengan struktur resmi '+esc(unit)+'.</p>';
@@ -434,7 +451,7 @@ async function generateDOCX(){
   children.push(new Paragraph({children:[new TextRun({text:unit,bold:true,size:26})],alignment:AlignmentType.CENTER,spacing:{after:300}}));
 
   children.push(new Paragraph({children:[new TextRun({text:'Nama Auditor\t\t: ',bold:true,size:fontSize}),new TextRun({text:auditorList.length?auditorList.map(formatAuditor).join(', '):'-',size:fontSize})],spacing:{after:60}}));
-  children.push(new Paragraph({children:[new TextRun({text:'Tanggal Interview\t: ',bold:true,size:fontSize}),new TextRun({text:tglInterview,size:fontSize})],spacing:{after:60}}));
+  children.push(new Paragraph({children:[new TextRun({text:'Tanggal Laporan\t: ',bold:true,size:fontSize}),new TextRun({text:tglInterview,size:fontSize})],spacing:{after:60}}));
   children.push(new Paragraph({children:[new TextRun({text:'Unit Auditee\t\t: ',bold:true,size:fontSize}),new TextRun({text:unitAuditee,size:fontSize})],spacing:{after:200}}));
 
   children.push(new Paragraph({text:'Pada tanggal '+periode+', tim auditor melaksanakan kunjungan ke '+unit+' dalam rangka menjalankan prosedur audit yaitu observasi dan wawancara. Pengumpulan informasi dilakukan terhadap auditee yang terdiri atas '+jabatanRingkas+' sesuai dengan struktur resmi '+unit+'.',size:fontSize,spacing:{after:150}}));
@@ -475,6 +492,98 @@ async function generateDOCX(){
 }
 
 ['judulLaporan','namaUnit','tanggalInterview','periodeKunjungan','kesimpulanTemuan'].forEach(id=>{document.getElementById(id).addEventListener('input',renderPreview)});
+
+/* ---------- Simpan / Muat Draft (localStorage) ---------- */
+const DRAFT_KEY='laporanWawancara_draft_v1';
+let autoSaveTimer=null;
+
+function ambilDataFormSaatIni(){
+  return {
+    judulLaporan:document.getElementById('judulLaporan').value,
+    namaUnit:document.getElementById('namaUnit').value,
+    tanggalInterview:document.getElementById('tanggalInterview').value,
+    periodeKunjungan:document.getElementById('periodeKunjungan').value,
+    kesimpulanTemuan:document.getElementById('kesimpulanTemuan').value,
+    auditorList,auditeeList,subPointList,
+    savedAt:new Date().toISOString()
+  };
+}
+
+function fmtWaktu(iso){
+  if(!iso)return '-';
+  return new Date(iso).toLocaleString('id-ID',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function simpanDraft(manual){
+  try{
+    let data=ambilDataFormSaatIni();
+    localStorage.setItem(DRAFT_KEY,JSON.stringify(data));
+    document.getElementById('statusSimpan').textContent=(manual?'✅ Draft disimpan':'Tersimpan otomatis')+' — '+fmtWaktu(data.savedAt);
+  }catch(err){
+    console.error(err);
+    if(manual)alert('❌ Gagal menyimpan draft di perangkat ini.\n\n'+err.message);
+  }
+}
+
+function jadwalkanAutoSave(){
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer=setTimeout(()=>simpanDraft(false),600);
+}
+
+function muatDataKeForm(data){
+  document.getElementById('judulLaporan').value=data.judulLaporan||'EXECUTIVE SUMMARY HASIL WAWANCARA';
+  document.getElementById('namaUnit').value=data.namaUnit||'';
+  document.getElementById('tanggalInterview').value=data.tanggalInterview||'';
+  document.getElementById('periodeKunjungan').value=data.periodeKunjungan||'';
+  document.getElementById('kesimpulanTemuan').value=data.kesimpulanTemuan||'';
+  auditorList=data.auditorList||[];
+  auditeeList=data.auditeeList||[];
+  subPointList=data.subPointList||[];
+  renderDaftarAuditor();renderDaftarAuditee();renderDaftarSubPoint();renderPreview();
+}
+
+function cekDraftTersimpan(){
+  let raw=localStorage.getItem(DRAFT_KEY);
+  if(!raw)return;
+  try{
+    let data=JSON.parse(raw);
+    document.getElementById('statusSimpan').textContent='Draft tersimpan terakhir — '+fmtWaktu(data.savedAt);
+    document.getElementById('draftBannerText').textContent='📂 Ditemukan draft tersimpan dari '+fmtWaktu(data.savedAt)+'. Lanjutkan pekerjaan sebelumnya?';
+    let banner=document.getElementById('draftBanner');
+    banner.style.display='flex';
+  }catch(err){console.error(err)}
+}
+
+function lanjutkanDraft(){
+  let raw=localStorage.getItem(DRAFT_KEY);
+  if(!raw){alert('Draft tidak ditemukan.');return}
+  try{
+    muatDataKeForm(JSON.parse(raw));
+    document.getElementById('draftBanner').style.display='none';
+  }catch(err){
+    console.error(err);
+    alert('❌ Gagal memuat draft.\n\n'+err.message);
+  }
+}
+
+function mulaiBaru(){
+  document.getElementById('draftBanner').style.display='none';
+}
+
+function hapusDraft(manual){
+  localStorage.removeItem(DRAFT_KEY);
+  document.getElementById('statusSimpan').textContent='Belum ada draft tersimpan.';
+  if(manual)alert('🗑️ Draft tersimpan telah dihapus dari perangkat ini.');
+}
+
+// Auto-save setiap kali ada perubahan pada preview (dipicu oleh input teks maupun aksi tambah/hapus/pindah)
+const _renderPreviewAsli=renderPreview;
+renderPreview=function(){
+  _renderPreviewAsli();
+  jadwalkanAutoSave();
+};
+
+window.addEventListener('DOMContentLoaded',cekDraftTersimpan);
 </script>
 </body>
 </html>
