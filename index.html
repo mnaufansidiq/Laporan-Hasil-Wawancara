@@ -139,7 +139,7 @@ function formatAuditor(a){return a.nama+(a.id?' ('+a.id+')':'')}
 
 /* ---------- Auditee ---------- */
 function tambahAuditee(){
-  let nama=document.getElementById('auditeeNama').value.trim(),jabatan=document.getElementById('auditeeJabatan').value.trim();
+  let nama=document.getElementById('auditeeNama').value.trim(),jabatan=document.getElementById('auditeeJabatan').value.trim().replace(/\s+/g,' ');
   if(!nama){alert('Nama auditee wajib diisi!');return}
   auditeeList.push({nama,jabatan});
   document.getElementById('auditeeNama').value='';
@@ -148,7 +148,13 @@ function tambahAuditee(){
 }
 function hapusAuditee(i){auditeeList.splice(i,1);renderDaftarAuditee();renderPreview()}
 function ringkasJabatan(){
-  let unik=[...new Set(auditeeList.map(a=>a.jabatan).filter(Boolean))];
+  let seen=new Set(),unik=[];
+  auditeeList.forEach(a=>{
+    if(!a.jabatan)return;
+    let bersih=a.jabatan.trim().replace(/\s+/g,' ');
+    let key=bersih.toLowerCase();
+    if(!seen.has(key)){seen.add(key);unik.push(bersih)}
+  });
   if(unik.length===0)return '…………';
   if(unik.length===1)return unik[0];
   return unik.slice(0,-1).join(', ')+' dan '+unik[unik.length-1];
